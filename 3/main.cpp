@@ -9,26 +9,6 @@
 constexpr static int64_t MAX_DIAL = 100;
 
 
-std::vector<std::string> split(const std::string& s, char delimiter) {
-    std::vector<std::string> result;
-    std::stringstream ss(s);
-    std::string token;
-
-    while (std::getline(ss, token, delimiter)) {
-        result.push_back(token);
-    }
-    return result;
-}
-
-std::vector<std::string> splitIntoChunks(const std::string& s, size_t numChunks) {
-    std::vector<std::string> result;
-    size_t chunkSize = s.length() / numChunks;
-    for (size_t i = 0; i < s.length(); i += chunkSize) {
-        result.push_back(s.substr(i, chunkSize));
-    }
-    return result;
-}
-
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         std::cerr << "Usage: " << argv[0] << " <filename>\n";
@@ -43,48 +23,35 @@ int main(int argc, char* argv[]) {
     }
 
     std::string line;
-    std::vector<std::string> ranges;
+    std::vector<std::string> banks;
     while (std::getline(file, line)) {
         std::cout << line << "\n";
-        ranges = split(line, ',');
+        banks.push_back(line);
     }
 
     uint64_t sum = 0;
-    for (const auto& range : ranges) {
-        auto r = split(range, '-');
-        std::string start = r[0];
-        std::string end = r[1];
-
-        auto starti = std::stoull(start);
-        auto endi = std::stoull(end);
-        std::unordered_set<uint64_t> seen;
-        for ( ; starti <= endi; starti++ ) {
-            std::string s = std::to_string(starti);
-            for (size_t i = 2; i <= s.length(); i++) {
-                if (s.length() % i != 0 || seen.contains(starti)) {
-                    continue;
-                }
-                
-                // valid chunk size
-                bool equal = true;
-                auto chunks = splitIntoChunks(s, i);
-                for (const auto& chunk : chunks) {
-                    // std::cout << "chunk: " << chunk << " chunks[0]" << chunks[0] << std::endl;
-                    if (chunk != chunks[0]) {
-                        equal = false;
-                        break;
-                    }
-                }
-
-                if (equal) {
-                    std::cout << starti << std::endl;
-                    sum += starti;
-                    seen.insert(starti);
-                }
+    for ( const auto& bank : banks ) {
+        // Find first max
+        uint64_t pos = 0;
+        uint64_t max = 0;
+        for ( size_t i = 0; i < bank.size()-1; i++ ) {
+            uint64_t val = bank[i] - '0';
+            if (val > max) {
+                max = val;
+                pos = i;
             }
         }
 
-        // std::cout << start << " " << end << std::endl;
+        // Now with pos, start there, go to end
+        uint64_t secondMax = 0;
+        for ( size_t i = pos+1; i < bank.size(); i++) {
+            uint64_t val = bank[i] - '0';
+            if (val > secondMax) {
+                secondMax = val;
+            }
+        }
+
+        sum += (max*10) + secondMax;
     }
     
     std::cout << sum << std::endl;
