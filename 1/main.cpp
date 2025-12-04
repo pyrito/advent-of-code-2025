@@ -1,32 +1,35 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <sstream>
-#include <unordered_set>
-
 #include <cstdint>
 
 constexpr static int64_t MAX_DIAL = 100;
 
-
-std::vector<std::string> split(const std::string& s, char delimiter) {
-    std::vector<std::string> result;
-    std::stringstream ss(s);
-    std::string token;
-
-    while (std::getline(ss, token, delimiter)) {
-        result.push_back(token);
-    }
-    return result;
+int64_t mod(int64_t a, int64_t m) {
+    int64_t r = a % m;
+    return (r < 0) ? r + m : r;
 }
 
-std::vector<std::string> splitIntoChunks(const std::string& s, size_t numChunks) {
-    std::vector<std::string> result;
-    size_t chunkSize = s.length() / numChunks;
-    for (size_t i = 0; i < s.length(); i += chunkSize) {
-        result.push_back(s.substr(i, chunkSize));
+uint64_t count(int64_t start, int64_t delta, int64_t n) {
+    // If we start at pos, move in the direction of delta
+    uint64_t c = 0;
+    int64_t pos = start;
+    if (delta > 0) {
+        for (int i = 0; i < delta; i++) {
+            int prev_pos = pos;
+            pos = (pos + 1) % n;
+            if (prev_pos == 0 && i != 0) c++; // crossed 0
+        }
+    } else if (delta < 0){
+        for (int i = 0; i < -delta; i++) {
+            int prev_pos = pos;
+            pos = (pos - 1 + n) % n;
+            // if we move from 0 to n-1, we crossed 0
+            if (prev_pos == 0 && pos == n-1 && i != 0) c++;
+        }
     }
-    return result;
+
+    return c;
 }
 
 int main(int argc, char* argv[]) {
@@ -43,51 +46,34 @@ int main(int argc, char* argv[]) {
     }
 
     std::string line;
-    std::vector<std::string> ranges;
+    uint64_t pos = 50;
+    uint64_t pass = 0;
     while (std::getline(file, line)) {
         std::cout << line << "\n";
-        ranges = split(line, ',');
-    }
-
-    uint64_t sum = 0;
-    for (const auto& range : ranges) {
-        auto r = split(range, '-');
-        std::string start = r[0];
-        std::string end = r[1];
-
-        auto starti = std::stoull(start);
-        auto endi = std::stoull(end);
-        std::unordered_set<uint64_t> seen;
-        for ( ; starti <= endi; starti++ ) {
-            std::string s = std::to_string(starti);
-            for (size_t i = 2; i <= s.length(); i++) {
-                if (s.length() % i != 0 || seen.contains(starti)) {
-                    continue;
-                }
-                
-                // valid chunk size
-                bool equal = true;
-                auto chunks = splitIntoChunks(s, i);
-                for (const auto& chunk : chunks) {
-                    // std::cout << "chunk: " << chunk << " chunks[0]" << chunks[0] << std::endl;
-                    if (chunk != chunks[0]) {
-                        equal = false;
-                        break;
-                    }
-                }
-
-                if (equal) {
-                    std::cout << starti << std::endl;
-                    sum += starti;
-                    seen.insert(starti);
-                }
-            }
+        char direction = line[0];
+        auto distance = std::stoull(line.substr(1));
+        int64_t apos = pos;
+        if (direction == 'L') {
+            int64_t wraps = count(apos, -distance, MAX_DIAL);
+            apos -= distance;
+            std::cout << "wraps: " << wraps << std::endl;
+            pass += wraps;
+        } else if (direction == 'R') {
+            int64_t wraps = count(apos, distance, MAX_DIAL);
+            apos += distance;
+            std::cout << "wraps: " << wraps << std::endl;
+            pass += wraps;
         }
 
-        // std::cout << start << " " << end << std::endl;
+        int64_t m = mod(apos, MAX_DIAL);
+        pos = m;
+        std::cout << apos << " " << pos << std::endl;
+        if (pos == 0) {
+            pass += 1;
+        }
     }
-    
-    std::cout << sum << std::endl;
+
+    std::cout << pass << std::endl;
 
     return 0;
 }
