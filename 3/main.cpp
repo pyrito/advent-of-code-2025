@@ -25,33 +25,29 @@ int main(int argc, char* argv[]) {
     std::string line;
     std::vector<std::string> banks;
     while (std::getline(file, line)) {
-        std::cout << line << "\n";
+        // std::cout << line << "\n";
         banks.push_back(line);
     }
 
     uint64_t sum = 0;
     for ( const auto& bank : banks ) {
-        // Find first max
+        std::string res;
         uint64_t pos = 0;
-        uint64_t max = 0;
-        for ( size_t i = 0; i < bank.size()-1; i++ ) {
-            uint64_t val = bank[i] - '0';
-            if (val > max) {
-                max = val;
-                pos = i;
+        for ( int64_t c = 11; c >= 0; c-- ) {
+            uint64_t max = 0;
+            for ( size_t i = pos; i < bank.size()-c; i++ ) {
+                uint64_t val = bank[i] - '0';
+                if (val > max) {
+                    max = val;
+                    pos = i+1;
+                }
             }
+            res += std::to_string(max);
         }
 
-        // Now with pos, start there, go to end
-        uint64_t secondMax = 0;
-        for ( size_t i = pos+1; i < bank.size(); i++) {
-            uint64_t val = bank[i] - '0';
-            if (val > secondMax) {
-                secondMax = val;
-            }
-        }
+        std::cout << res << std::endl;
 
-        sum += (max*10) + secondMax;
+        sum += std::stoull(res);
     }
     
     std::cout << sum << std::endl;
