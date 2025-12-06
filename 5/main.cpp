@@ -89,16 +89,12 @@ int main(int argc, char* argv[]) {
     printVector(mergedRanges);
 
     // inefficient, but good enough
-    uint64_t fresh = 0;
-    for (const auto& i : ingredients) {
-        for (const auto& r : mergedRanges) {
-            if ( r.first <= i && i <= r.second) {
-                fresh += 1;
-            }
-        }
+    uint64_t allFresh = 0;
+    for (const auto& r : mergedRanges) {
+        allFresh += (r.second - r.first + 1);
     }
 
-    std::cout << fresh << std::endl;
+    std::cout << allFresh << std::endl;
     
     
     
