@@ -58,8 +58,9 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    printVector(cols);
+    // printVector(cols);
 
+    // part 1
     uint64_t total = 0;
     for ( const auto& col : cols ) {
         const auto& op = col.back();
