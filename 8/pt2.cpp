@@ -6,8 +6,46 @@
 #include <set>
 #include <cstdint>
 #include <queue>
+#include <numeric>
 
 
+
+struct Junction {
+    uint64_t id;
+    uint64_t x;
+    uint64_t y;
+    uint64_t z;
+};
+
+struct JunctionEntry {
+    uint64_t a;
+    uint64_t b;
+    double dist;
+};
+
+struct UnionFind {
+    std::vector<uint64_t> parent;
+    uint64_t components;
+
+    UnionFind( uint64_t size ) : parent(size), components(size) {
+        std::iota( parent.begin(), parent.end(), 0);
+    }
+
+    uint64_t find( uint64_t x ) {
+        if( parent[x] != x ) {
+            parent[x] = find(parent[x]);
+        }
+        return parent[x];
+    }
+
+    void unite( uint64_t x, uint64_t y ) {
+        x = find(x);
+        y = find(y);
+        if (x==y) return;
+        parent[y] = x;
+        components--;
+    }
+};
 
 void printVector(const std::vector<std::vector<std::string>>& vec) {
     // Helper
@@ -19,41 +57,23 @@ void printVector(const std::vector<std::vector<std::string>>& vec) {
     }
 }
 
-uint64_t dfs( const std::vector<std::string>& grid, int x, int y,
-         std::vector<std::vector<uint64_t>>& cache ) {
-    auto checkBounds = [&]( int a, int b ) {
-        return ( ( a < grid.size() && a >= 0 ) &&
-             ( b < grid[0].length() && b >= 0 ) );
-    };
+std::vector<std::string> split(const std::string& s, char delimiter) {
+    std::vector<std::string> result;
+    std::stringstream ss(s);
+    std::string token;
 
-    if ( !checkBounds( x, y ) ) {
-        return 0;
+    while (std::getline(ss, token, delimiter)) {
+        result.push_back(token);
     }
-
-    // Reached bottom
-    if ( x == grid.size() - 1 ) {
-        return 1;
-    }
-
-    // Check cache
-    if ( cache[x][y] != -1 ) { 
-        return cache[x][y];
-    }
-
-    uint64_t result = 0;
-    if ( grid[x][y] == '^' ) {
-        uint64_t left = dfs(grid, x, y-1, cache);
-        uint64_t right = dfs(grid, x, y+1, cache);
-
-        result = left + right;
-    } else {
-        result = dfs(grid, x+1,y, cache);
-    }
-
-    cache[x][y] = result;
     return result;
 }
 
+double distance( const Junction& a, const Junction& b ) {
+    double dx = double(a.x) - double(b.x);
+    double dy = double(a.y) - double(b.y);
+    double dz = double(a.z) - double(b.z);
+    return std::sqrt(dx*dx + dy*dy + dz*dz);
+}
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
@@ -68,31 +88,52 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::string line;    
-    std::vector<std::string> grid;
-    while(std::getline(file,line)) {
-        grid.push_back(line);
-    }
-    
-    using Coord_t = std::pair<int64_t, int64_t>;
+    std::string line;
 
-    Coord_t start;
-    for (uint64_t i = 0; i < grid[0].length(); i++) {
-        char c = grid[0][i];
-        if (c == 'S') {
-            start = { 0, i };
+    // Keep track of the coordinates
+    std::vector<Junction> junctions;
+    uint64_t id = 0;
+    while(std::getline(file,line)) {
+        auto v = split( line, ',' );
+        junctions.emplace_back(Junction{id++, std::stoull(v[0]), std::stoull(v[1]),std::stoull(v[2])});
+    }
+
+    auto cmp = []( JunctionEntry& a, JunctionEntry& b ) { return a.dist > b.dist; };
+    std::priority_queue<JunctionEntry, std::vector<JunctionEntry>, decltype(cmp)> pq(cmp);
+    for ( size_t i = 0; i < junctions.size(); i++ ) { 
+        for (size_t j = i + 1; j < junctions.size(); j++) {
+            auto dist = distance(junctions[i], junctions[j]);
+            pq.push( JunctionEntry{ i,j, dist } );
         }
     }
 
-    std::cout << start.first << std::endl;
-    std::cout << start.second << std::endl;
+    std::vector<JunctionEntry> entries;
+    while ( !pq.empty() ) {
+        entries.push_back(pq.top());
+        pq.pop();
+    }
 
-    // Set the cache
-    std::vector<std::vector<uint64_t>> cache(grid.size(), std::vector<uint64_t>(grid[0].size(), -1));
-    uint64_t total = dfs(grid, start.first, start.second, cache);
+    UnionFind uf(junctions.size());
+    std::vector<std::pair<uint64_t, uint64_t>> edges;
+    uint64_t res = 0;
+    for ( auto e : entries ) {
+        std::cout << e.a << " " << e.b << " " <<  e.dist << std::endl;
+        auto a = e.a;
+        auto b = e.b;
+        uf.unite( a, b );
+        std::cout << uf.components << std::endl;
+        if ( uf.components == 1) {
+            // std::cout << junctions[a].x << " " << junctions[b].x << std::endl;
+            res = junctions[a].x * junctions[b].x;
+            break;
+        }
+    }
 
-    std::cout << total << std::endl;
+    std::cout << res << std::endl;
 
+    
+    
+    
     return 0;
 }
 
